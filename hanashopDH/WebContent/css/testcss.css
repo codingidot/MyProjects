@@ -1,0 +1,132 @@
+* {
+  box-sizing: border-box;
+}
+
+/* div { */
+/* 	float : left; */
+/* } */
+
+
+
+body {
+  margin: 0;
+/*   min-width: 992px; */
+  font-family: "Helvetica";
+}
+/* 여기서부턴 내가작성 */
+
+.category {
+	float : left;
+	  margin-top : 10px;
+	  border-top : 10px;
+/* 	padding : 5px; */
+	display: flex;
+	justify-content: left;
+}
+
+.category ul{
+  float: right;
+}
+
+.category li{
+  font-style: bold;
+  list-style-type: none;
+  float: left;
+  margin-right: 30px;
+}
+
+/* .toolbar { */
+/* 	float : left; */
+/* } */
+
+.logo{
+  
+  float : left;
+  font-size: 36px;
+  flex: 1;  
+  padding: 0 0 0 30px;
+  line-height: 2.75;
+  font-style: bold;
+  color: #545454;
+}
+/* 여기까지 내가작성 */
+
+.navbar{
+/*   height: 60px; */
+  padding-left: 30px;
+}
+
+
+.navbar ul{
+  float: right;
+}
+
+.navbar li{
+  list-style-type: none;
+  float: left;
+  margin-right: 30px;
+}
+
+.navbar a{
+  text-decoration: none;
+  color: black;
+  font-style: bold;
+  font-size: 13px;
+}
+
+/* .hero_header{ */
+/*   height: 450px; */
+/*   width: 100%; */
+/* } */
+
+body h1{
+  text-align: center;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  font-size: 24px;
+  font-style: bold;
+  color: #545454;
+}
+
+.products {
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0;
+  width: 740px;
+  text-align: center;
+}
+
+.products img{
+  width: 225px;
+  height: 225px;
+  margin-right: 20px;
+  margin-bottom: 20px;
+}
+
+.products a{
+  text-decoration: none;
+  color: black;
+  float: left;
+  font-size: 16px;
+}
+
+.price{
+  margin-top: 4px;
+  margin-bottom: 80px;
+}
+
+.clearfix{
+  clear: both;
+}
+
+.footer{
+  text-align: center;
+}
+
+.footer img{
+  margin-top: 40px;
+  height: 20px;
+  margin-bottom: 80px;
+  margin-left: 10px;
+  margin-right: 10px;
+}
