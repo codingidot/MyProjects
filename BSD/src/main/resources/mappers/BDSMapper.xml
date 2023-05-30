@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+ 
+<mapper namespace="com.exercise.go.mapper.Bsdmapper">
+    <select id="checkIdPw"  parameterType="hashmap" resultType="java.util.HashMap">
+        SELECT * FROM MEMBER WHERE ID = #{id} AND PW = #{pw}  
+    </select>
+    
+    <select id="checkID"  parameterType="hashmap" resultType="java.util.HashMap">
+        SELECT * FROM MEMBER WHERE ID = #{id}   
+    </select>
+    
+    <select id="checkNickname"  parameterType="hashmap" resultType="java.util.HashMap">
+        SELECT * FROM MEMBER WHERE NICKNAME = #{nickname}   
+    </select>
+    
+    <insert id="insertID"  parameterType="hashmap">
+        INSERT INTO MEMBER VALUES( #{id} ,#{pw} ,#{ph} ,#{name}, #{nickname})  
+    </insert>
+    
+    <update id="updatePW"  parameterType="hashmap">
+        UPDATE MEMBER SET PW = #{pw} WHERE ID = #{id} 
+    </update>
+    
+    <select id="selectList"  parameterType="hashmap" resultType="java.util.HashMap">
+        SELECT TC.CONTENTS_ID, TC.BSD, TC.ID, TC.AGREE, TC.TITLE, TC.UPLOAD_DATE, TC.CONTENTS, TC.WEIGHT, TC.ATTACHMENT, TC.DISAGREE, TC.CL_RESULT, TC.CNT, MEM.NICKNAME
+        FROM TB_CONTENTS TC 
+        INNER JOIN MEMBER MEM ON( TC.ID = MEM.ID ) 
+        WHERE BSD = #{BSD} AND TITLE LIKE ('%' || #{searchVal} || '%')
+    </select>
+    
+    <select id="selectAdminVList"  parameterType="hashmap" resultType="java.util.HashMap">
+        SELECT TC.CONTENTS_ID, TC.BSD, TC.ID, TC.AGREE, TC.TITLE, TC.UPLOAD_DATE, TC.CONTENTS, TC.WEIGHT, TC.ATTACHMENT, TC.DISAGREE, TC.CL_RESULT, TC.CNT, MEM.NICKNAME
+        FROM TB_CONTENTS TC 
+        INNER JOIN MEMBER MEM ON( TC.ID = MEM.ID ) 
+        WHERE TITLE LIKE ('%' || #{searchVal} || '%')
+        ORDER BY CONTENTS_ID DESC
+    </select>
+    
+    <select id="selectRank"  parameterType="hashmap" resultType="java.util.HashMap">
+		SELECT CC.ID AS ID , CC.NICKNAME AS NICKNAME, CC.WEIGHT AS WEIGHT, CC.RANKING AS RANKING
+		FROM (
+				SELECT KK.ID AS ID, MEM.NICKNAME AS NICKNAME,  SUM(KK.BEST) AS WEIGHT, DENSE_RANK() OVER (ORDER BY SUM(KK.BEST) DESC) RANKING
+				FROM (
+						SELECT ID, BSD, MAX(WEIGHT) AS BEST
+						FROM RECORD
+						WHERE Y_N = 'Y'
+						GROUP BY ID, BSD 
+						HAVING BSD IN(#{B},#{S},#{D})
+				     ) KK
+				LEFT OUTER JOIN MEMBER MEM 
+				ON ( KK.ID = MEM.ID) 
+				GROUP BY KK.ID, MEM.NICKNAME
+		) CC
+		WHERE CC.NICKNAME LIKE ('%' || #{NICKNAME} || '%')
+		ORDER BY  CC.RANKING 
+    </select>
+    
+    <select id="selectDetail"  parameterType="hashmap" resultType="java.util.HashMap">
+        SELECT * FROM TB_CONTENTS WHERE CONTENTS_ID = #{CONTENTS_ID}
+    </select>
+    
+    <insert id="insertRecord"  parameterType="hashmap">
+		
+		<selectKey resultType="integer" keyProperty="contentsIdx" order="BEFORE">
+		    SELECT NVL(MAX(CONTENTS_ID), 0)+1 FROM TB_CONTENTS
+		</selectKey>   
+
+        INSERT INTO TB_CONTENTS VALUES( #{contentsIdx} ,#{BSD} ,#{id} ,0 ,#{title}
+        								,#{date} ,0 ,#{contents} ,#{weight} ,#{fileName} ,0 ,'평가중' )  
+    </insert>
+    
+    <update id="updateRecord" parameterType="hashmap">
+		BEGIN
+			UPDATE TB_CONTENTS 
+			SET TITLE = #{title} , CONTENTS = #{contents} , WEIGHT = #{weight} , ATTACHMENT = #{fileName} , UPLOAD_DATE = #{date}
+			WHERE CONTENTS_ID = #{CONTENTS_ID}; 
+		END;
+	</update>
+    
+    <select id="selectContentsNewId" resultType="integer">
+        SELECT NVL(MAX(CONTENTS_ID), 0)+1 FROM TB_CONTENTS
+    </select>
+    
+    <select id="selectComment"  parameterType="hashmap" resultType="java.util.HashMap">
+        SELECT COM.CONTENTS_ID ,
+			   COM.TALK ,
+			   COM.ID ,
+			   COM.CLEVEL ,
+			   SUBSTR(COM.CL_DATE, 1, 10 ) AS CL_DATE ,
+			   COM.CL_LIKE ,
+			   COM.CL_DISLIKE ,
+			   COM.CL_TIME,
+			   MEM.NICKNAME  
+		  FROM TB_COMMENT COM
+		  LEFT OUTER JOIN MEMBER MEM 
+		  ON ( COM.ID = MEM.ID ) 
+		  WHERE COM.CONTENTS_ID = #{CONTENTS_ID} AND CLEVEL = 1
+		  ORDER BY COM.CL_DATE DESC, COM.CL_TIME DESC
+    </select>
+
+	<update id="updateCnt"  parameterType="hashmap">
+		<selectKey resultType="integer" keyProperty="count" order="BEFORE">
+		    SELECT CNT +1 FROM TB_CONTENTS WHERE CONTENTS_ID = #{CONTENTS_ID}
+		</selectKey>
+        UPDATE TB_CONTENTS SET CNT = #{count} WHERE CONTENTS_ID = #{CONTENTS_ID}
+    </update>
+    
+    <insert id="insertComment"  parameterType="hashmap">
+        INSERT INTO TB_COMMENT(CONTENTS_ID , TALK, ID, CLEVEL, CL_DATE, CL_TIME) VALUES( TO_NUMBER(#{CONTENTS_ID}) ,#{TALK} ,#{ID} ,#{CLEVEL} ,#{DATE}, #{TIME})  
+    </insert>
+    
+  
+    
+    <select id="selectLikeCount" resultType="integer">
+        SELECT CL_LIKE FROM TB_COMMENT WHERE CONTENTS_ID = #{CONTENTS_ID} AND ID = #{ID} AND CLEVEL = #{CLEVEL} AND CL_DATE = #{CL_DATE} AND CL_TIME = #{CL_TIME}
+    </select>
+    
+    <select id="selectDisLikeCount" resultType="integer">
+        SELECT CL_DISLIKE FROM TB_COMMENT WHERE CONTENTS_ID = #{CONTENTS_ID} AND ID = #{ID} AND CLEVEL = #{CLEVEL} AND CL_DATE = #{CL_DATE} AND CL_TIME = #{CL_TIME}
+    </select>
+    
+    <insert id="insertLike"  parameterType="hashmap">
+		BEGIN
+		<selectKey resultType="integer" keyProperty="isThere" order="BEFORE">
+		    SELECT COUNT(*) FROM LIKE_DISLIKE WHERE CONTENTS_ID = #{CONTENTS_ID} AND ID = #{ID} AND CLEVEL = #{CLEVEL} AND CL_DATE = #{CL_DATE} AND CL_TIME = #{CL_TIME} AND CLICK_ID = #{CLICK_ID} AND L_D = 'L'
+		</selectKey>
+		<choose>
+			<when test="isThere != 0">
+				DELETE FROM LIKE_DISLIKE WHERE CONTENTS_ID = #{CONTENTS_ID} AND ID = #{ID} AND CLEVEL = #{CLEVEL} AND CL_DATE = #{CL_DATE} AND CL_TIME = #{CL_TIME} AND CLICK_ID = #{CLICK_ID} AND L_D = 'L';	
+			</when>
+			<otherwise>
+				INSERT INTO LIKE_DISLIKE(CONTENTS_ID , ID, CLEVEL, CL_TIME, CL_DATE, L_D, CLICK_ID) VALUES( #{CONTENTS_ID} ,#{ID} ,#{CLEVEL} ,#{CL_TIME}, #{CL_DATE}, 'L', #{CLICK_ID});  
+			</otherwise>
+		</choose>
+		 END; 
+	</insert>
+
+	 <insert id="insertDisLike"  parameterType="hashmap">
+		BEGIN
+		<selectKey resultType="integer" keyProperty="isThere" order="BEFORE">
+		    SELECT COUNT(*) FROM LIKE_DISLIKE WHERE CONTENTS_ID = #{CONTENTS_ID} AND ID = #{ID} AND CLEVEL = #{CLEVEL} AND CL_DATE = #{CL_DATE} AND CL_TIME = #{CL_TIME} AND CLICK_ID = #{CLICK_ID} AND L_D = 'D'
+		</selectKey>
+		<choose>
+			<when test="isThere != 0">
+				DELETE FROM LIKE_DISLIKE WHERE CONTENTS_ID = #{CONTENTS_ID} AND ID = #{ID} AND CLEVEL = #{CLEVEL} AND CL_DATE = #{CL_DATE} AND CL_TIME = #{CL_TIME} AND CLICK_ID = #{CLICK_ID}  AND L_D = 'D';	
+			</when>
+			<otherwise>
+				 INSERT INTO LIKE_DISLIKE(CONTENTS_ID , ID, CLEVEL, CL_TIME, CL_DATE, L_D, CLICK_ID) VALUES( #{CONTENTS_ID} ,#{ID} ,#{CLEVEL} ,#{CL_TIME}, #{CL_DATE}, 'D', #{CLICK_ID});  
+			</otherwise>
+		</choose>
+		 END; 
+	</insert> 
+	
+    <update id="updateLike"  parameterType="hashmap">
+        <selectKey resultType="integer" keyProperty="isThere" order="BEFORE">
+		    SELECT COUNT(*) FROM LIKE_DISLIKE WHERE CONTENTS_ID = #{CONTENTS_ID} AND ID = #{ID} AND CLEVEL = #{CLEVEL} AND CL_DATE = #{CL_DATE} AND CL_TIME = #{CL_TIME} AND CLICK_ID = #{CLICK_ID} AND L_D = 'L'
+		</selectKey>
+		<choose>
+			<when test="isThere != 0">
+				UPDATE TB_COMMENT SET CL_LIKE = #{like}+1 WHERE CONTENTS_ID = #{CONTENTS_ID} AND ID = #{ID} AND CLEVEL = #{CLEVEL} AND CL_DATE = #{CL_DATE} AND CL_TIME = #{CL_TIME}
+			</when>
+			<otherwise>
+				UPDATE TB_COMMENT SET CL_LIKE = #{like}-1 WHERE CONTENTS_ID = #{CONTENTS_ID} AND ID = #{ID} AND CLEVEL = #{CLEVEL} AND CL_DATE = #{CL_DATE} AND CL_TIME = #{CL_TIME}  
+			</otherwise>
+		</choose>
+    </update>
+    
+    <update id="updateDisLike"  parameterType="hashmap">
+		<selectKey resultType="integer" keyProperty="isThere" order="BEFORE">
+		    SELECT COUNT(*) FROM LIKE_DISLIKE WHERE CONTENTS_ID = #{CONTENTS_ID} AND ID = #{ID} AND CLEVEL = #{CLEVEL} AND CL_DATE = #{CL_DATE} AND CL_TIME = #{CL_TIME} AND CLICK_ID = #{CLICK_ID} AND L_D = 'D'
+		</selectKey>
+		<choose>
+			<when test="isThere != 0">
+				UPDATE TB_COMMENT SET CL_DISLIKE = #{dislike}+1 WHERE CONTENTS_ID = #{CONTENTS_ID} AND ID = #{ID} AND CLEVEL = #{CLEVEL} AND CL_DATE = #{CL_DATE} AND CL_TIME = #{CL_TIME}
+			</when>
+			<otherwise>
+				UPDATE TB_COMMENT SET CL_DISLIKE = #{dislike}-1 WHERE CONTENTS_ID = #{CONTENTS_ID} AND ID = #{ID} AND CLEVEL = #{CLEVEL} AND CL_DATE = #{CL_DATE} AND CL_TIME = #{CL_TIME}  
+			</otherwise>
+		</choose>
+    </update>
+    
+    <select id="selectVoteResult"  parameterType="hashmap" resultType="java.util.HashMap">
+         SELECT (SELECT COUNT(*) FROM AGREE_DISAGREE WHERE CONTENTS_ID = #{CONTENTS_ID}) AS TOTAL,
+		        (SELECT COUNT(*) FROM AGREE_DISAGREE WHERE CONTENTS_ID = #{CONTENTS_ID} AND AGREE = 'Y') AS YES,
+		        (SELECT COUNT(*) FROM AGREE_DISAGREE WHERE CONTENTS_ID = #{CONTENTS_ID} AND AGREE = 'N') AS NONO
+		 FROM DUAL
+    </select>
+    
+    <insert id="insertAgree"  parameterType="hashmap">
+        INSERT INTO AGREE_DISAGREE(CONTENTS_ID ,ID ,AGREE) VALUES( TO_NUMBER(#{CONTENTS_ID}) ,#{ID} ,#{AGREE})  
+    </insert>
+    
+     <select id="checkAgree"  parameterType="hashmap" resultType="java.util.HashMap">
+	    
+	 SELECT ( SELECT CASE WHEN COUNT(*)>0 THEN 'CANT'
+                ELSE 'CAN' 
+	             END  
+	            FROM AGREE_DISAGREE   
+	           WHERE CONTENTS_ID = TO_NUMBER(#{CONTENTS_ID})
+	             AND ID = #{ID} 
+	         ) AS VOTE,
+	         ( SELECT COUNT(*)
+	             FROM AGREE_DISAGREE   
+	            WHERE CONTENTS_ID = TO_NUMBER(#{CONTENTS_ID})
+             ) AS COUNTNUM,
+             (SELECT COUNT(*) 
+			    FROM AGREE_DISAGREE   
+			   WHERE CONTENTS_ID = #{CONTENTS_ID} AND AGREE = 'Y'
+             ) AS AGREE,
+             (SELECT COUNT(*) 
+			    FROM AGREE_DISAGREE   
+			   WHERE CONTENTS_ID = #{CONTENTS_ID} AND AGREE = 'N'
+             ) AS DISAGREE
+	    
+       FROM DUAL   
+	 </select>  
+	 
+	 
+	 <insert id="finishVote"  parameterType="hashmap">
+		BEGIN
+			INSERT INTO RECORD VALUES(#{ID} ,#{BSD}, #{WEIGHT} ,#{DATE}, #{Y_N}, #{CONTENTS_ID});
+			UPDATE TB_CONTENTS SET CL_RESULT = '평가완료' WHERE CONTENTS_ID = #{CONTENTS_ID};
+		END; 
+	 </insert> 
+	 
+    <select id="selectMyList"  parameterType="hashmap" resultType="java.util.HashMap">
+        SELECT TC.contents_id, TC.BSD, TC.ID, TC.AGREE, TC.TITLE, TC.UPLOAD_DATE, TC.CONTENTS, TC.WEIGHT, TC.ATTACHMENT, TC.DISAGREE, TC.CL_RESULT, TC.CNT, MEM.NICKNAME
+        FROM TB_CONTENTS TC 
+        INNER JOIN MEMBER MEM ON( TC.ID = MEM.ID ) 
+        WHERE TC.ID = #{ID} AND TITLE LIKE ('%' || #{searchVal} || '%')
+    </select>
+    
+    <delete id="deleteContents" parameterType="hashmap">
+		BEGIN
+			DELETE FROM TB_COMMENT WHERE CONTENTS_ID = #{CONTENTS_ID};
+			DELETE FROM TB_CONTENTS WHERE CONTENTS_ID = #{CONTENTS_ID};
+			DELETE FROM AGREE_DISAGREE WHERE CONTENTS_ID = #{CONTENTS_ID};
+		END;
+	</delete>
+	
+    <delete id="deleteMember" parameterType="hashmap">
+		BEGIN
+			DELETE FROM TB_COMMENT WHERE ID = #{ID};
+			DELETE FROM TB_CONTENTS WHERE ID = #{ID};
+			DELETE FROM RECORD WHERE ID = #{ID};
+			DELETE FROM MEMBER WHERE ID = #{ID};
+			
+		END;
+	</delete>
+	
+	<select id="selectAdminMList"  parameterType="hashmap" resultType="java.util.HashMap">
+         SELECT * FROM MEMBER WHERE NICKNAME LIKE ('%' || #{searchVal} || '%')
+    </select>
+</mapper>
+
